@@ -4,6 +4,7 @@ import { Provider, loadProviders } from "@/lib/providers";
 import { ProviderTable } from "@/components/ProviderTable";
 import { ProviderDrawer } from "@/components/ProviderDrawer";
 import { ChartsRow } from "@/components/ChartsRow";
+import { CdnPotentialSection } from "@/components/CdnPotentialSection";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -198,6 +199,8 @@ function Dashboard() {
             <PotBtn label="Sem nenhum produto"  count={data?.filter(p => !p.celeti && !p.hub && !p.cdn && !p.rami).length} color="var(--text2)" active={potencial === "any"} onClick={() => setPotencial(potencial === "any" ? "" : "any")} />
           </div>
         </div>
+
+        {data && <CdnPotentialSection providers={filtered} onSelect={setSelected} />}
       </main>
 
       <ProviderDrawer p={selected} onClose={() => setSelected(null)} />
