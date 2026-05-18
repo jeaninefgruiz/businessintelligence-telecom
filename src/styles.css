@@ -82,4 +82,7 @@
     font-family: var(--font-body);
     margin: 0;
   }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .row2 { grid-template-columns: 1fr; } }
+  select option { background: var(--bg3); color: var(--text); }
 }
