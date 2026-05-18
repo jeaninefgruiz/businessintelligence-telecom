@@ -4,6 +4,7 @@ import { Provider, loadProviders } from "@/lib/providers";
 import { ProviderTable } from "@/components/ProviderTable";
 import { ProviderDrawer } from "@/components/ProviderDrawer";
 import { ChartsRow } from "@/components/ChartsRow";
+import { CdnPotentialSection } from "@/components/CdnPotentialSection";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
