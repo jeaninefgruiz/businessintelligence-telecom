@@ -32,6 +32,7 @@ function emailStatusColor(kind: "valido" | "invalido" | "inconclusivo" | "sem") 
 
 export function ProviderDrawer({ p, onClose }: { p: Provider | null; onClose: () => void }) {
   if (!p) return null;
+  const prov: Provider = p;
   const phones = [p.tel, p.tel2, p.tel3, p.tel4, p.tel5].map(formatPhone).filter(Boolean) as string[];
   const score = providerScore(p);
   const ptt = nearestPTT(p.uf);
@@ -39,12 +40,12 @@ export function ProviderDrawer({ p, onClose }: { p: Provider | null; onClose: ()
   const ek = emailStatusColor(emailStatusKind(p.email_status));
 
   function copyContact() {
-    const txt = [p.fantasia || p.nome, p.email, phones[0]].filter(Boolean).join(" · ");
+    const txt = [prov.fantasia || prov.nome, prov.email, phones[0]].filter(Boolean).join(" · ");
     navigator.clipboard.writeText(txt);
   }
   function exportRow() {
-    const csv = toCsv([p as unknown as Record<string, unknown>]);
-    downloadCsv(`${(p.fantasia || p.nome || "provedor").replace(/[^\w]+/g, "_")}.csv`, csv);
+    const csv = toCsv([prov as unknown as Record<string, unknown>]);
+    downloadCsv(`${(prov.fantasia || prov.nome || "provedor").replace(/[^\w]+/g, "_")}.csv`, csv);
   }
 
   return (
