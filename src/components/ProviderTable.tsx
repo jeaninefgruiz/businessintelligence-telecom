@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Provider } from "@/lib/providers";
+import { providerScore, scoreColor, scoreBg, scoreLabel } from "@/lib/score";
 
 export function ProviderTable({ rows, onSelect, pageSize = 25 }: {
   rows: Provider[];
@@ -18,13 +19,15 @@ export function ProviderTable({ rows, onSelect, pageSize = 25 }: {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr>
-              {["Provedor", "UF", "Município", "Porte", "ERP", "ASN", "Produtos", ""].map(h => (
+              {["Provedor", "UF", "Município", "Porte", "ERP", "ASN", "Produtos", "Score", ""].map(h => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {shown.map((p, i) => (
+            {shown.map((p, i) => {
+              const s = providerScore(p);
+              return (
               <tr key={i} onClick={() => onSelect(p)} style={{ cursor: "pointer" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(79,142,247,0.06)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
@@ -44,11 +47,15 @@ export function ProviderTable({ rows, onSelect, pageSize = 25 }: {
                   {p.cdn && <Dot label="D" color="var(--coral)" />}
                   {p.rami && <Dot label="R" color="var(--amber)" />}
                 </td>
+                <td style={tdStyle}>
+                  <span style={{ display: "inline-block", fontSize: 10, padding: "2px 8px", borderRadius: 4, fontWeight: 600, background: scoreBg(s), color: scoreColor(s) }}>{scoreLabel(s)}</span>
+                </td>
                 <td style={{ ...tdStyle, color: "var(--blue)", fontSize: 11 }}>Ver →</td>
               </tr>
-            ))}
+              );
+            })}
             {shown.length === 0 && (
-              <tr><td colSpan={8} style={{ ...tdStyle, textAlign: "center", color: "var(--text3)", padding: 32 }}>Nenhum provedor encontrado com os filtros atuais.</td></tr>
+              <tr><td colSpan={9} style={{ ...tdStyle, textAlign: "center", color: "var(--text3)", padding: 32 }}>Nenhum provedor encontrado com os filtros atuais.</td></tr>
             )}
           </tbody>
         </table>
