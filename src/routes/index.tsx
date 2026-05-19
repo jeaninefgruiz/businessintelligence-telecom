@@ -1,53 +1,59 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Provider, loadProviders } from "@/lib/providers";
 import { ProviderTable } from "@/components/ProviderTable";
 import { ProviderDrawer } from "@/components/ProviderDrawer";
 import { ChartsRow } from "@/components/ChartsRow";
 import { CdnPotentialSection } from "@/components/CdnPotentialSection";
+import { BrazilMap } from "@/components/BrazilMap";
+import { QuickShortcuts } from "@/components/QuickShortcuts";
+import { providerScore, emailStatusKind, maturidadeAnos, toCsv, downloadCsv, Score } from "@/lib/score";
+import { nearestPTT, cdnPriority } from "@/lib/ptt";
+import { useTheme } from "@/lib/theme";
+import {
+  Users, Building2, Globe2, Network, Mail, ShieldCheck, Target, Sun, Moon, Download, FileDown,
+} from "lucide-react";
 
-export const Route = createFileRoute("/")({
-  component: Dashboard,
-});
+export const Route = createFileRoute("/")({ component: Dashboard });
 
 type ProductFilter = "" | "celeti" | "hub" | "cdn" | "rami";
 type PotentialFilter = "" | "celeti" | "hub" | "cdn" | "rami" | "any";
 
 function Dashboard() {
+  const { mode, toggle } = useTheme();
   const [data, setData] = useState<Provider[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [uf, setUf] = useState("");
+
+  // Filtros globais
+  const [ufs, setUfs] = useState<string[]>([]);
   const [porte, setPorte] = useState("");
   const [erp, setErp] = useState("");
   const [produto, setProduto] = useState<ProductFilter>("");
   const [potencial, setPotencial] = useState<PotentialFilter>("");
+  const [scoreF, setScoreF] = useState<"" | Score>("");
+  const [emailF, setEmailF] = useState("");
+  const [prioCdn, setPrioCdn] = useState<"" | "alta" | "media" | "baixa">("");
+  const [faixaAss, setFaixaAss] = useState("");
+  const [maturF, setMaturF] = useState("");
   const [busca, setBusca] = useState("");
   const [selected, setSelected] = useState<Provider | null>(null);
 
-  useEffect(() => {
-    loadProviders().then(setData).catch(e => setError(String(e)));
-  }, []);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const { ufs, portes, erps } = useMemo(() => {
-    if (!data) return { ufs: [], portes: [], erps: [] };
-    const u = new Set<string>(), p = new Set<string>(), e = new Set<string>();
-    data.forEach(r => {
-      if (r.uf) u.add(r.uf);
-      if (r.porte) p.add(r.porte);
-      if (r.erp) e.add(r.erp);
-    });
-    return {
-      ufs: [...u].sort(),
-      portes: [...p].sort(),
-      erps: [...e].sort(),
-    };
+  useEffect(() => { loadProviders().then(setData).catch(e => setError(String(e))); }, []);
+
+  const dims = useMemo(() => {
+    if (!data) return { ufList: [], portes: [], erps: [] };
+    const u = new Set<string>(), pr = new Set<string>(), e = new Set<string>();
+    data.forEach(r => { if (r.uf) u.add(r.uf); if (r.porte) pr.add(r.porte); if (r.erp) e.add(r.erp); });
+    return { ufList: [...u].sort(), portes: [...pr].sort(), erps: [...e].sort() };
   }, [data]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
     const q = busca.trim().toLowerCase();
     return data.filter(r => {
-      if (uf && r.uf !== uf) return false;
+      if (ufs.length && (!r.uf || !ufs.includes(r.uf))) return false;
       if (porte && r.porte !== porte) return false;
       if (erp && r.erp !== erp) return false;
       if (produto === "celeti" && !r.celeti) return false;
@@ -59,37 +65,84 @@ function Dashboard() {
       if (potencial === "cdn" && r.cdn) return false;
       if (potencial === "rami" && r.rami) return false;
       if (potencial === "any" && (r.celeti || r.hub || r.cdn || r.rami)) return false;
+      if (scoreF && providerScore(r) !== scoreF) return false;
+      if (emailF) {
+        const k = emailStatusKind(r.email_status);
+        if (emailF === "valido" && !(k === "valido" && r.email)) return false;
+        if (emailF === "invalido" && k !== "invalido") return false;
+        if (emailF === "inconclusivo" && !(k === "inconclusivo" && r.email)) return false;
+        if (emailF === "sem" && r.email) return false;
+      }
+      if (prioCdn) {
+        if (r.cdn) return false;
+        const np = nearestPTT(r.uf);
+        if (!np || cdnPriority(np.km) !== prioCdn) return false;
+      }
+      if (faixaAss) {
+        const a = r.assinantes ?? -1;
+        if (faixaAss === "<100" && !(a >= 0 && a < 100)) return false;
+        if (faixaAss === "100-500" && !(a >= 100 && a < 500)) return false;
+        if (faixaAss === "500-2000" && !(a >= 500 && a < 2000)) return false;
+        if (faixaAss === ">2000" && !(a >= 2000)) return false;
+      }
+      if (maturF) {
+        const yr = maturidadeAnos(r.abertura);
+        if (yr == null) return false;
+        if (maturF === "<2" && !(yr < 2)) return false;
+        if (maturF === "2-5" && !(yr >= 2 && yr < 5)) return false;
+        if (maturF === "5-10" && !(yr >= 5 && yr < 10)) return false;
+        if (maturF === ">10" && !(yr >= 10)) return false;
+      }
       if (q) {
         const hay = `${r.nome || ""} ${r.fantasia || ""} ${r.municipio || ""} ${r.cnpj || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [data, uf, porte, erp, produto, potencial, busca]);
+  }, [data, ufs, porte, erp, produto, potencial, scoreF, emailF, prioCdn, faixaAss, maturF, busca]);
 
   const kpis = useMemo(() => {
     const total = filtered.length;
-    let ce = 0, hu = 0, cd = 0, ra = 0, em = 0, naoCliente = 0;
+    let ce = 0, hu = 0, cd = 0, ra = 0, em = 0, naoCliente = 0, alto = 0;
     filtered.forEach(r => {
-      if (r.celeti) ce++;
-      if (r.hub) hu++;
-      if (r.cdn) cd++;
-      if (r.rami) ra++;
+      if (r.celeti) ce++; if (r.hub) hu++; if (r.cdn) cd++; if (r.rami) ra++;
       if (r.email) em++;
       if (!r.celeti && !r.hub && !r.cdn && !r.rami) naoCliente++;
+      if (providerScore(r) === "alto") alto++;
     });
-    return { total, ce, hu, cd, ra, em, naoCliente };
+    return { total, ce, hu, cd, ra, em, naoCliente, alto };
   }, [filtered]);
 
   function reset() {
-    setUf(""); setPorte(""); setErp(""); setProduto(""); setPotencial(""); setBusca("");
+    setUfs([]); setPorte(""); setErp(""); setProduto(""); setPotencial("");
+    setScoreF(""); setEmailF(""); setPrioCdn(""); setFaixaAss(""); setMaturF(""); setBusca("");
+  }
+
+  function exportVisao() {
+    if (!filtered.length) return;
+    const rows = filtered.map(p => {
+      const np = nearestPTT(p.uf);
+      return { ...p, score: providerScore(p), ptt_proximo: np?.ptt, distancia_km: np?.km };
+    });
+    downloadCsv(`provedores_visao_${Date.now()}.csv`, toCsv(rows as any));
+  }
+  function exportLeads() {
+    const rows = filtered.filter(p => {
+      const s = providerScore(p);
+      return (s === "alto" || s === "medio") && p.email && emailStatusKind(p.email_status) === "valido";
+    }).map(p => {
+      const np = nearestPTT(p.uf);
+      return { ...p, score: providerScore(p), ptt_proximo: np?.ptt, distancia_km: np?.km };
+    });
+    if (!rows.length) return alert("Nenhum lead qualificado na visão atual.");
+    downloadCsv(`leads_qualificados_${Date.now()}.csv`, toCsv(rows as any));
   }
 
   return (
     <div>
       <nav style={{
         background: "var(--bg2)", borderBottom: "1px solid var(--border-c)",
-        padding: "0 32px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 24px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between",
         position: "sticky", top: 0, zIndex: 100,
       }}>
         <div style={{ fontFamily: "var(--font-head)", fontWeight: 800, fontSize: 16, letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 10 }}>
@@ -97,84 +150,135 @@ function Dashboard() {
           SUPERCOMM
           <span style={{ color: "var(--text3)", fontWeight: 400, fontSize: 13, marginLeft: 6 }}>/ Inteligência de Mercado ISP</span>
         </div>
-        <div style={{ fontSize: 12, color: "var(--text3)" }}>
-          {data ? `${data.length.toLocaleString("pt-BR")} provedores · base consolidada` : "Carregando base..."}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ fontSize: 12, color: "var(--text3)" }}>
+            {data ? `${data.length.toLocaleString("pt-BR")} provedores na base` : "Carregando..."}
+          </span>
+          <button onClick={toggle} title="Alternar tema" style={iconBtn} aria-label="Alternar tema">
+            {mode === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
         </div>
       </nav>
 
-      <main style={{ maxWidth: 1400, margin: "0 auto", padding: "28px 32px 60px" }}>
+      <main style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 24px 60px" }}>
         <h1 style={{ fontFamily: "var(--font-head)", fontSize: 26, fontWeight: 700, marginBottom: 4 }}>Mercado ISP Brasil</h1>
-        <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 24 }}>
-          Painel estratégico de inteligência competitiva e oportunidades comerciais
-        </p>
+        <p style={{ fontSize: 13, color: "var(--text2)", marginBottom: 20 }}>Painel estratégico de inteligência competitiva, prospecção e consultoria comercial</p>
 
         {error && <div style={{ color: "var(--coral)", marginBottom: 16 }}>Erro ao carregar dados: {error}</div>}
 
-        {/* Filters */}
+        {/* a) Filtros globais */}
         <div style={filtersWrap}>
           <FG label="UF">
-            <select style={selectStyle} value={uf} onChange={e => setUf(e.target.value)}>
-              <option value="">Todas</option>
-              {ufs.map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
+            <MultiSelect options={dims.ufList} value={ufs} onChange={setUfs} placeholder="Todas" />
           </FG>
-          <Sep />
           <FG label="Porte">
             <select style={selectStyle} value={porte} onChange={e => setPorte(e.target.value)}>
               <option value="">Todos</option>
-              {portes.map(p => <option key={p} value={p}>{p}</option>)}
+              {dims.portes.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </FG>
-          <Sep />
           <FG label="ERP">
             <select style={selectStyle} value={erp} onChange={e => setErp(e.target.value)}>
               <option value="">Todos</option>
-              {erps.map(e => <option key={e} value={e}>{e}</option>)}
+              {dims.erps.map(e => <option key={e} value={e}>{e}</option>)}
             </select>
           </FG>
-          <Sep />
           <FG label="Cliente de">
             <select style={selectStyle} value={produto} onChange={e => setProduto(e.target.value as ProductFilter)}>
-              <option value="">Todos</option>
+              <option value="">Qualquer</option>
               <option value="celeti">Celeti</option>
               <option value="hub">Celeti Hub</option>
               <option value="cdn">CDN</option>
               <option value="rami">Rami</option>
             </select>
           </FG>
-          <Sep />
-          <FG label="Potencial cliente">
+          <FG label="Não-cliente">
             <select style={selectStyle} value={potencial} onChange={e => setPotencial(e.target.value as PotentialFilter)}>
               <option value="">—</option>
-              <option value="any">Nenhum produto (qualquer um)</option>
+              <option value="any">Nenhum produto</option>
               <option value="celeti">Não-cliente Celeti</option>
-              <option value="hub">Não-cliente Celeti Hub</option>
+              <option value="hub">Não-cliente Hub</option>
               <option value="cdn">Não-cliente CDN</option>
               <option value="rami">Não-cliente Rami</option>
             </select>
           </FG>
-          <Sep />
-          <FG label="Buscar">
-            <input style={{ ...selectStyle, width: 220 }} placeholder="Nome, município ou CNPJ..." value={busca} onChange={e => setBusca(e.target.value)} />
+          <FG label="Score">
+            <select style={selectStyle} value={scoreF} onChange={e => setScoreF(e.target.value as any)}>
+              <option value="">Todos</option>
+              <option value="alto">Alto</option>
+              <option value="medio">Médio</option>
+              <option value="baixo">Baixo</option>
+            </select>
           </FG>
-          <button onClick={reset} style={btnReset}>Limpar filtros</button>
+          <FG label="E-mail">
+            <select style={selectStyle} value={emailF} onChange={e => setEmailF(e.target.value)}>
+              <option value="">Todos</option>
+              <option value="valido">Válido</option>
+              <option value="invalido">Inválido</option>
+              <option value="inconclusivo">Inconclusivo</option>
+              <option value="sem">Sem e-mail</option>
+            </select>
+          </FG>
+          <FG label="Prioridade CDN">
+            <select style={selectStyle} value={prioCdn} onChange={e => setPrioCdn(e.target.value as any)}>
+              <option value="">Todas</option>
+              <option value="alta">Alta (&gt;1.000 km)</option>
+              <option value="media">Média (500–1.000)</option>
+              <option value="baixa">Baixa (&lt;500)</option>
+            </select>
+          </FG>
+          <FG label="Assinantes">
+            <select style={selectStyle} value={faixaAss} onChange={e => setFaixaAss(e.target.value)}>
+              <option value="">Todas</option>
+              <option value="<100">&lt; 100</option>
+              <option value="100-500">100–500</option>
+              <option value="500-2000">500–2.000</option>
+              <option value=">2000">&gt; 2.000</option>
+            </select>
+          </FG>
+          <FG label="Maturidade">
+            <select style={selectStyle} value={maturF} onChange={e => setMaturF(e.target.value)}>
+              <option value="">Todas</option>
+              <option value="<2">&lt; 2 anos</option>
+              <option value="2-5">2–5 anos</option>
+              <option value="5-10">5–10 anos</option>
+              <option value=">10">&gt; 10 anos</option>
+            </select>
+          </FG>
+          <FG label="Buscar">
+            <input style={{ ...selectStyle, minWidth: 200 }} placeholder="Nome, município, CNPJ..." value={busca} onChange={e => setBusca(e.target.value)} />
+          </FG>
+          <div style={{ display: "flex", gap: 8, marginLeft: "auto", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "var(--text2)" }}><b style={{ color: "var(--blue)" }}>{filtered.length.toLocaleString("pt-BR")}</b> provedores na visão</span>
+            <button onClick={reset} style={btnGhost}>Limpar filtros</button>
+            <button onClick={exportVisao} style={btnPrimary} title="Exportar todos os provedores filtrados"><Download size={13} /> CSV</button>
+            <button onClick={exportLeads} style={btnGhost} title="Exportar apenas leads Alto/Médio com e-mail válido"><FileDown size={13} /> Leads</button>
+          </div>
         </div>
 
-        {/* KPIs */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 12, marginBottom: 24 }}>
-          <Kpi color="var(--text)"  label="Filtrados"        value={kpis.total} sub="provedores na visão atual" />
-          <Kpi color="var(--blue)"  label="Clientes Celeti"  value={kpis.ce}    sub={pct(kpis.ce, kpis.total)} />
-          <Kpi color="var(--teal)"  label="Clientes Hub"     value={kpis.hu}    sub={pct(kpis.hu, kpis.total)} />
-          <Kpi color="var(--coral)" label="Clientes CDN"     value={kpis.cd}    sub={pct(kpis.cd, kpis.total)} />
-          <Kpi color="var(--amber)" label="Clientes Rami"    value={kpis.ra}    sub={pct(kpis.ra, kpis.total)} />
-          <Kpi color="var(--green)" label="Com e-mail"       value={kpis.em}    sub={pct(kpis.em, kpis.total)} />
-          <Kpi color="var(--text3)" label="Sem nenhum produto" value={kpis.naoCliente} sub={pct(kpis.naoCliente, kpis.total)} />
+        {/* b) KPIs */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 20 }}>
+          <Kpi icon={<Users size={14} />} color="var(--text)"  label="Filtrados"        value={kpis.total} sub="provedores" />
+          <Kpi icon={<Target size={14} />} color="var(--coral)" label="Score Alto"      value={kpis.alto}    sub={pct(kpis.alto, kpis.total)} />
+          <Kpi icon={<Building2 size={14} />} color="var(--blue)"  label="Clientes Celeti"  value={kpis.ce}    sub={pct(kpis.ce, kpis.total)} />
+          <Kpi icon={<Network size={14} />} color="var(--teal)"  label="Clientes Hub"     value={kpis.hu}    sub={pct(kpis.hu, kpis.total)} />
+          <Kpi icon={<Globe2 size={14} />} color="var(--coral)" label="Clientes CDN"     value={kpis.cd}    sub={pct(kpis.cd, kpis.total)} />
+          <Kpi icon={<ShieldCheck size={14} />} color="var(--amber)" label="Clientes Rami"    value={kpis.ra}    sub={pct(kpis.ra, kpis.total)} />
+          <Kpi icon={<Mail size={14} />} color="var(--green)" label="Com e-mail"       value={kpis.em}    sub={pct(kpis.em, kpis.total)} />
+          <Kpi icon={<Users size={14} />} color="var(--text3)" label="Sem nenhum produto" value={kpis.naoCliente} sub={pct(kpis.naoCliente, kpis.total)} />
         </div>
 
-        {data && <ChartsRow providers={filtered} />}
+        {/* c) Gráficos */}
+        {data ? <ChartsRow providers={filtered} /> : <SkeletonRows />}
 
-        {/* Table */}
-        <div style={{ background: "var(--bg2)", border: "1px solid var(--border-c)", borderRadius: "var(--radius)", padding: 20, marginTop: 16 }}>
+        {/* d) Mapa */}
+        {data && <BrazilMap providers={filtered} />}
+
+        {/* e) Atalhos de prospecção rápida */}
+        <QuickShortcuts data={data} potencial={potencial} setPotencial={setPotencial} listRef={listRef} />
+
+        {/* f) Lista de provedores */}
+        <div ref={listRef} style={{ background: "var(--bg2)", border: "1px solid var(--border-c)", borderRadius: "var(--radius)", padding: 20 }}>
           <div style={{ fontFamily: "var(--font-head)", fontSize: 13, fontWeight: 600, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--blue)" }} />
             Lista de provedores · clique em uma linha para ver todos os dados
@@ -182,24 +286,7 @@ function Dashboard() {
           {data ? <ProviderTable rows={filtered} onSelect={setSelected} /> : <SkeletonRows />}
         </div>
 
-        {/* Potencial Clientes */}
-        <div style={{ background: "var(--bg2)", border: "1px solid var(--border-c)", borderRadius: "var(--radius)", padding: 20, marginTop: 16 }}>
-          <div style={{ fontFamily: "var(--font-head)", fontSize: 13, fontWeight: 600, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--coral)" }} />
-            Possíveis clientes — atalhos rápidos
-          </div>
-          <p style={{ fontSize: 12, color: "var(--text2)", marginBottom: 14 }}>
-            Provedores que ainda não são clientes em cada produto. Use os filtros acima para refinar por UF, porte ou ERP.
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            <PotBtn label="Não-clientes Celeti" count={data?.filter(p => !p.celeti).length} color="var(--blue)"  active={potencial === "celeti"} onClick={() => setPotencial(potencial === "celeti" ? "" : "celeti")} />
-            <PotBtn label="Não-clientes Hub"    count={data?.filter(p => !p.hub).length}    color="var(--teal)"  active={potencial === "hub"}    onClick={() => setPotencial(potencial === "hub" ? "" : "hub")} />
-            <PotBtn label="Não-clientes CDN"    count={data?.filter(p => !p.cdn).length}    color="var(--coral)" active={potencial === "cdn"}    onClick={() => setPotencial(potencial === "cdn" ? "" : "cdn")} />
-            <PotBtn label="Não-clientes Rami"   count={data?.filter(p => !p.rami).length}   color="var(--amber)" active={potencial === "rami"}   onClick={() => setPotencial(potencial === "rami" ? "" : "rami")} />
-            <PotBtn label="Sem nenhum produto"  count={data?.filter(p => !p.celeti && !p.hub && !p.cdn && !p.rami).length} color="var(--text2)" active={potencial === "any"} onClick={() => setPotencial(potencial === "any" ? "" : "any")} />
-          </div>
-        </div>
-
+        {/* Potencial CDN */}
         {data && <CdnPotentialSection providers={filtered} onSelect={setSelected} />}
       </main>
 
@@ -215,48 +302,62 @@ function pct(n: number, total: number) {
 
 function FG({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <span style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>{label}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <span style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
       {children}
     </div>
   );
 }
-function Sep() { return <div style={{ width: 1, height: 20, background: "var(--border-c)" }} />; }
 
-function Kpi({ color, label, value, sub }: { color: string; label: string; value: number; sub: string }) {
+function Kpi({ icon, color, label, value, sub }: { icon: React.ReactNode; color: string; label: string; value: number; sub: string }) {
   return (
-    <div style={{ background: "var(--bg2)", border: "1px solid var(--border-c)", borderRadius: "var(--radius)", padding: "16px 18px", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: "var(--bg2)", border: "1px solid var(--border-c)", borderRadius: "var(--radius)", padding: "14px 16px", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: color }} />
-      <div style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{label}</div>
-      <div style={{ fontFamily: "var(--font-head)", fontSize: 24, fontWeight: 700, lineHeight: 1, color, marginBottom: 4 }}>{value.toLocaleString("pt-BR")}</div>
-      <div style={{ fontSize: 11, color: "var(--text3)" }}>{sub}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+        <span style={{ color }}>{icon}</span>{label}
+      </div>
+      <div style={{ fontFamily: "var(--font-head)", fontSize: 22, fontWeight: 700, lineHeight: 1, color, marginBottom: 4 }}>{value.toLocaleString("pt-BR")}</div>
+      <div style={{ fontSize: 10, color: "var(--text3)" }}>{sub}</div>
     </div>
   );
 }
 
-function PotBtn({ label, count, color, active, onClick }: { label: string; count: number | undefined; color: string; active: boolean; onClick: () => void }) {
+function MultiSelect({ options, value, onChange, placeholder }: { options: string[]; value: string[]; onChange: (v: string[]) => void; placeholder: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function onClick(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener("mousedown", onClick); return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+  const label = value.length === 0 ? placeholder : value.length <= 2 ? value.join(", ") : `${value.length} selecionadas`;
+  function toggle(o: string) { onChange(value.includes(o) ? value.filter(v => v !== o) : [...value, o]); }
   return (
-    <button onClick={onClick} style={{
-      background: active ? color : "var(--bg3)",
-      color: active ? "#0E1117" : "var(--text)",
-      border: `1px solid ${active ? color : "var(--border-c)"}`,
-      borderRadius: 8, padding: "10px 14px", cursor: "pointer",
-      fontFamily: "var(--font-body)", fontSize: 12, fontWeight: active ? 600 : 500,
-      display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2, minWidth: 160,
-    }}>
-      <span>{label}</span>
-      <span style={{ fontFamily: "var(--font-head)", fontSize: 18, fontWeight: 700 }}>
-        {count != null ? count.toLocaleString("pt-BR") : "—"}
-      </span>
-    </button>
+    <div ref={ref} style={{ position: "relative", minWidth: 130 }}>
+      <button onClick={() => setOpen(!open)} style={{ ...selectStyle, width: "100%", textAlign: "left", cursor: "pointer" }}>
+        {label} <span style={{ float: "right", color: "var(--text3)" }}>▾</span>
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 50, minWidth: 180,
+          background: "var(--bg2)", border: "1px solid var(--border-c)", borderRadius: 6,
+          maxHeight: 260, overflowY: "auto", padding: 4,
+        }}>
+          {options.map(o => (
+            <label key={o} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", borderRadius: 4 }}>
+              <input type="checkbox" checked={value.includes(o)} onChange={() => toggle(o)} />{o}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
 function SkeletonRows() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} style={{ height: 32, background: "var(--bg3)", borderRadius: 4, opacity: 0.4 - i * 0.04 }} />
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} style={{ height: 40, background: "var(--bg3)", borderRadius: 6, opacity: 0.5 - i * 0.06 }} />
       ))}
     </div>
   );
@@ -264,17 +365,24 @@ function SkeletonRows() {
 
 const filtersWrap: React.CSSProperties = {
   background: "var(--bg2)", border: "1px solid var(--border-c)", borderRadius: "var(--radius)",
-  padding: "14px 18px", display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 24,
+  padding: "14px 16px", display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end", marginBottom: 16,
 };
 const selectStyle: React.CSSProperties = {
   background: "var(--bg3)", border: "1px solid var(--border-c)", borderRadius: 6,
   color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 12,
-  padding: "6px 10px", height: 32, outline: "none",
+  padding: "6px 10px", height: 32, outline: "none", minWidth: 110,
 };
-const btnReset: React.CSSProperties = {
+const btnGhost: React.CSSProperties = {
   background: "transparent", border: "1px solid var(--border-c)", borderRadius: 6,
   color: "var(--text2)", fontFamily: "var(--font-body)", fontSize: 12,
-  padding: "6px 14px", height: 32, cursor: "pointer", marginLeft: "auto",
+  padding: "6px 12px", height: 32, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
 };
-
-declare global { interface HTMLElementTagNameMap { } }
+const btnPrimary: React.CSSProperties = {
+  background: "var(--blue-dim)", border: "1px solid var(--blue)", borderRadius: 6,
+  color: "var(--blue)", fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600,
+  padding: "6px 12px", height: 32, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+};
+const iconBtn: React.CSSProperties = {
+  background: "var(--bg3)", border: "1px solid var(--border-c)", color: "var(--text)",
+  borderRadius: 6, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center",
+};
