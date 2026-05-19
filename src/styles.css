@@ -31,7 +31,7 @@
   --font-body: var(--font-body);
 }
 
-:root {
+:root, [data-theme="dark"] {
   --radius: 10px;
   --bg: #0E1117;
   --bg2: #151B26;
@@ -71,6 +71,30 @@
   --border: oklch(0.32 0.04 264);
   --input: oklch(0.32 0.04 264);
   --ring: oklch(0.55 0.1 257);
+}
+
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --bg2: #F6F8FB;
+  --bg3: #EBEFF5;
+  --border-c: #D6DEEB;
+  --text: #0E1117;
+  --text2: #4A5878;
+  --text3: #8B9BBF;
+  --blue: #185FA5;
+  --blue-dim: #DCE9F7;
+  --green: #3B6D11;
+  --green-dim: #E1F0D2;
+  --amber: #B8730F;
+  --amber-dim: #FBE9CC;
+  --coral: #C0392B;
+  --coral-dim: #FADDD9;
+  --teal: #1F8A8A;
+  --background: oklch(0.99 0.005 247);
+  --foreground: oklch(0.2 0.02 264);
+  --card: oklch(0.97 0.005 247);
+  --card-foreground: oklch(0.2 0.02 264);
+  --border: oklch(0.88 0.01 247);
 }
 
 @layer base {
