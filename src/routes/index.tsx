@@ -35,6 +35,7 @@ function Dashboard() {
   const [prioCdn, setPrioCdn] = useState<"" | "alta" | "media" | "baixa">("");
   const [faixaAss, setFaixaAss] = useState("");
   const [maturF, setMaturF] = useState("");
+  const [asnF, setAsnF] = useState<"" | "com" | "sem">("");
   const [busca, setBusca] = useState("");
   const [selected, setSelected] = useState<Provider | null>(null);
 
@@ -93,13 +94,15 @@ function Dashboard() {
         if (maturF === "5-10" && !(yr >= 5 && yr < 10)) return false;
         if (maturF === ">10" && !(yr >= 10)) return false;
       }
+      if (asnF === "com" && r.asn == null) return false;
+      if (asnF === "sem" && r.asn != null) return false;
       if (q) {
         const hay = `${r.nome || ""} ${r.fantasia || ""} ${r.municipio || ""} ${r.cnpj || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [data, ufs, porte, erp, produto, potencial, scoreF, emailF, prioCdn, faixaAss, maturF, busca]);
+  }, [data, ufs, porte, erp, produto, potencial, scoreF, emailF, prioCdn, faixaAss, maturF, asnF, busca]);
 
   const kpis = useMemo(() => {
     const total = filtered.length;
@@ -115,7 +118,7 @@ function Dashboard() {
 
   function reset() {
     setUfs([]); setPorte(""); setErp(""); setProduto(""); setPotencial("");
-    setScoreF(""); setEmailF(""); setPrioCdn(""); setFaixaAss(""); setMaturF(""); setBusca("");
+    setScoreF(""); setEmailF(""); setPrioCdn(""); setFaixaAss(""); setMaturF(""); setAsnF(""); setBusca("");
   }
 
   function exportVisao() {
@@ -243,6 +246,13 @@ function Dashboard() {
               <option value="2-5">2–5 anos</option>
               <option value="5-10">5–10 anos</option>
               <option value=">10">&gt; 10 anos</option>
+            </select>
+          </FG>
+          <FG label="ASN">
+            <select style={selectStyle} value={asnF} onChange={e => setAsnF(e.target.value as any)}>
+              <option value="">Todos</option>
+              <option value="com">Com ASN</option>
+              <option value="sem">Sem ASN</option>
             </select>
           </FG>
           <FG label="Buscar">
