@@ -150,29 +150,44 @@ export function BrazilMap({ providers }: { providers: Provider[] }) {
                 />
               );
             })}
-            {/* Linhas de cada UF (com ASN) até o PTT mais próximo */}
-            {projection && metric === "asn" && Object.entries(stats.asn).map(([uf, count]) => {
+            {/* Linhas + label km de cada UF (com ASN) até o PTT mais próximo */}
+            {projection && metric === "asn" && Object.entries(stats.asn).map(([uf]) => {
               if (!UF_COORDS[uf] || !stats.ptt[uf]) return null;
               const ufC = projection([UF_COORDS[uf][1], UF_COORDS[uf][0]]);
               const ptt = PTTS.find(p => p.name === stats.ptt[uf].name);
               if (!ptt || !ufC) return null;
               const pttC = projection([ptt.lon, ptt.lat]);
               if (!pttC) return null;
-              const op = Math.min(0.55, 0.12 + (count / max) * 0.5);
+              const km = stats.ptt[uf].km;
+              if (km < 30) return null;
+              const mx = (ufC[0] + pttC[0]) / 2, my = (ufC[1] + pttC[1]) / 2;
               return (
-                <line key={uf} x1={ufC[0]} y1={ufC[1]} x2={pttC[0]} y2={pttC[1]}
-                  stroke="#3DD68C" strokeWidth={1} strokeDasharray="3,3" opacity={op} />
+                <g key={`l-${uf}`} style={{ pointerEvents: "none" }}>
+                  <line x1={ufC[0]} y1={ufC[1]} x2={pttC[0]} y2={pttC[1]}
+                    stroke="#3DD68C" strokeWidth={1.2} strokeDasharray="4,3" opacity={0.6} />
+                  {km >= 200 && (
+                    <>
+                      <rect x={mx - 22} y={my - 8} width={44} height={14} rx={3}
+                        fill="var(--bg)" stroke="#3DD68C" strokeWidth={0.8} opacity={0.95} />
+                      <text x={mx} y={my + 2} textAnchor="middle" fontSize={9} fontWeight={600}
+                        fill="#3DD68C" style={{ fontFamily: "var(--font-body)" }}>
+                        {km} km
+                      </text>
+                    </>
+                  )}
+                </g>
               );
             })}
-            {/* Bolhas por UF dimensionadas pelo nº de ASNs */}
+            {/* Bolhas por UF com nº de ASNs dentro */}
             {projection && metric === "asn" && Object.entries(stats.asn).map(([uf, count]) => {
               if (!UF_COORDS[uf]) return null;
               const c = projection([UF_COORDS[uf][1], UF_COORDS[uf][0]]);
               if (!c) return null;
-              const r = 3 + Math.sqrt(count) * 1.6;
+              const r = Math.max(11, 6 + Math.sqrt(count) * 2);
               const pttInfo = stats.ptt[uf];
+              const fontSize = r > 18 ? 11 : r > 14 ? 10 : 9;
               return (
-                <g key={uf}
+                <g key={`b-${uf}`}
                   onMouseMove={e => {
                     const rect = (e.currentTarget.ownerSVGElement as SVGSVGElement).getBoundingClientRect();
                     setHover({
@@ -182,8 +197,14 @@ export function BrazilMap({ providers }: { providers: Provider[] }) {
                         ${pttInfo ? `→ ${pttInfo.name} (${pttInfo.km} km)` : ""}`,
                     });
                   }}
-                  onMouseLeave={() => setHover(null)}>
-                  <circle cx={c[0]} cy={c[1]} r={r} fill="#3DD68C" fillOpacity={0.65} stroke="#fff" strokeWidth={1} style={{ cursor: "pointer" }} />
+                  onMouseLeave={() => setHover(null)}
+                  style={{ cursor: "pointer" }}>
+                  <circle cx={c[0]} cy={c[1]} r={r} fill="#3DD68C" fillOpacity={0.95} stroke="#0E1117" strokeWidth={1.5} />
+                  <text x={c[0]} y={c[1] + fontSize / 3} textAnchor="middle"
+                    fontSize={fontSize} fontWeight={700} fill="#0E1117"
+                    style={{ fontFamily: "var(--font-head)", pointerEvents: "none" }}>
+                    {count}
+                  </text>
                 </g>
               );
             })}
