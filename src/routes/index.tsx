@@ -7,6 +7,7 @@ import { ChartsRow } from "@/components/ChartsRow";
 import { CdnPotentialSection } from "@/components/CdnPotentialSection";
 import { BrazilMap } from "@/components/BrazilMap";
 import { QuickShortcuts } from "@/components/QuickShortcuts";
+import { ScoreExplainer } from "@/components/ScoreExplainer";
 import { providerScore, emailStatusKind, maturidadeAnos, toCsv, downloadCsv, Score } from "@/lib/score";
 import { nearestPTT, cdnPriority } from "@/lib/ptt";
 import { useTheme } from "@/lib/theme";
@@ -277,6 +278,9 @@ function Dashboard() {
           <Kpi icon={<Mail size={14} />} color="var(--green)" label="Com e-mail"       value={kpis.em}    sub={pct(kpis.em, kpis.total)} />
           <Kpi icon={<Users size={14} />} color="var(--text3)" label="Sem nenhum produto" value={kpis.naoCliente} sub={pct(kpis.naoCliente, kpis.total)} />
         </div>
+
+        {/* Explicação do score */}
+        <ScoreExplainer />
 
         {/* c) Gráficos */}
         {data ? <ChartsRow providers={filtered} /> : <SkeletonRows />}
