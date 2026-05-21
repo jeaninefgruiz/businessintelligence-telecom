@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  PieChart, Pie, Cell, Legend,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList,
 } from "recharts";
 import { Provider } from "@/lib/providers";
 import { maturidadeAnos, maturidadeFaixa, emailStatusKind } from "@/lib/score";
@@ -50,7 +49,7 @@ export function ChartsRow({ providers }: { providers: Provider[] }) {
   }, [providers]);
 
   const emailDist = useMemo(() => {
-    const c = { Válido: 0, Inválido: 0, Inconclusivo: 0, "Sem e-mail": 0 };
+    const c = { "Válido": 0, "Inválido": 0, "Inconclusivo": 0, "Sem e-mail": 0 };
     providers.forEach(p => {
       const k = emailStatusKind(p.email_status);
       if (k === "valido" && p.email) c["Válido"]++;
@@ -79,30 +78,37 @@ export function ChartsRow({ providers }: { providers: Provider[] }) {
   }, [providers]);
 
   const tickStyle = { fontSize: 10, fill: "var(--text2)" };
+  const emailColorOf = (n: string) =>
+    n === "Válido" ? "#3DD68C" : n === "Inválido" ? "#F76F6F" : n === "Inconclusivo" ? "#F7A84F" : "#4A5878";
 
   return (
     <>
       <div className="row2">
         <Card title="Top 15 UFs por nº de provedores" dot="var(--blue)">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={uf} layout="vertical" margin={{ left: 8, right: 16 }}>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={uf} layout="vertical" margin={{ left: 8, right: 28 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-c)" />
               <XAxis type="number" tick={tickStyle} stroke="var(--border-c)" />
               <YAxis type="category" dataKey="name" tick={tickStyle} stroke="var(--border-c)" width={36} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" fill="#4F8EF7" radius={[0, 3, 3, 0]} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--bg3)", opacity: 0.4 }} />
+              <Bar dataKey="value" fill="#4F8EF7" radius={[0, 3, 3, 0]}>
+                <LabelList dataKey="value" position="right" style={{ fill: "var(--text2)", fontSize: 10 }} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
         <Card title="Market share de ERP (top 10, excl. sem ERP)" dot="var(--amber)">
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie data={erp} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={1}>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={erp} layout="vertical" margin={{ left: 8, right: 28 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-c)" />
+              <XAxis type="number" tick={tickStyle} stroke="var(--border-c)" />
+              <YAxis type="category" dataKey="name" tick={{ ...tickStyle, fontSize: 10 }} stroke="var(--border-c)" width={110} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--bg3)", opacity: 0.4 }} />
+              <Bar dataKey="value" radius={[0, 3, 3, 0]}>
                 {erp.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 10, color: "var(--text2)" }} />
-            </PieChart>
+                <LabelList dataKey="value" position="right" style={{ fill: "var(--text2)", fontSize: 10 }} />
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </Card>
       </div>
@@ -115,21 +121,23 @@ export function ChartsRow({ providers }: { providers: Provider[] }) {
               <XAxis dataKey="name" tick={tickStyle} stroke="var(--border-c)" />
               <YAxis tick={tickStyle} stroke="var(--border-c)" />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 11, color: "var(--text2)" }} />
-              <Bar dataKey="clientes" stackId="a" fill="#4F8EF7" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="clientes" stackId="a" fill="#4F8EF7" />
               <Bar dataKey="não-clientes" stackId="a" fill="#263049" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
         <Card title="Distribuição por porte" dot="var(--teal)">
           <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie data={porte} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={1}>
+            <BarChart data={porte} layout="vertical" margin={{ left: 8, right: 28 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-c)" />
+              <XAxis type="number" tick={tickStyle} stroke="var(--border-c)" />
+              <YAxis type="category" dataKey="name" tick={tickStyle} stroke="var(--border-c)" width={100} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--bg3)", opacity: 0.4 }} />
+              <Bar dataKey="value" radius={[0, 3, 3, 0]}>
                 {porte.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 10, color: "var(--text2)" }} />
-            </PieChart>
+                <LabelList dataKey="value" position="right" style={{ fill: "var(--text2)", fontSize: 10 }} />
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </Card>
       </div>
@@ -142,22 +150,24 @@ export function ChartsRow({ providers }: { providers: Provider[] }) {
               <XAxis dataKey="name" tick={tickStyle} stroke="var(--border-c)" />
               <YAxis tick={tickStyle} stroke="var(--border-c)" />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" fill="#F7A84F" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="value" fill="#F7A84F" radius={[3, 3, 0, 0]}>
+                <LabelList dataKey="value" position="top" style={{ fill: "var(--text2)", fontSize: 10 }} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
         <Card title="Status de e-mail" dot="var(--coral)">
           <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie data={emailDist} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} paddingAngle={1}>
-                {emailDist.map((d, i) => {
-                  const c = d.name === "Válido" ? "#3DD68C" : d.name === "Inválido" ? "#F76F6F" : d.name === "Inconclusivo" ? "#F7A84F" : "#4A5878";
-                  return <Cell key={i} fill={c} />;
-                })}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 10, color: "var(--text2)" }} />
-            </PieChart>
+            <BarChart data={emailDist} layout="vertical" margin={{ left: 8, right: 28 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-c)" />
+              <XAxis type="number" tick={tickStyle} stroke="var(--border-c)" />
+              <YAxis type="category" dataKey="name" tick={tickStyle} stroke="var(--border-c)" width={90} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--bg3)", opacity: 0.4 }} />
+              <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                {emailDist.map((d, i) => <Cell key={i} fill={emailColorOf(d.name)} />)}
+                <LabelList dataKey="value" position="right" style={{ fill: "var(--text2)", fontSize: 10 }} />
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </Card>
       </div>
