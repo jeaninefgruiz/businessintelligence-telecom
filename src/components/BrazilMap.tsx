@@ -311,6 +311,7 @@ export function BrazilMap({ providers, onUfClick, onPttClick }: {
                 <div key={p.name}
                   onMouseEnter={() => setHighlightPtt(p.name)}
                   onMouseLeave={() => setHighlightPtt(null)}
+                  onClick={() => onPttClick?.(p.name, p.ufs.map(u => u.uf))}
                   style={{
                     display: "flex", alignItems: "center", gap: 8, padding: "5px 6px",
                     borderRadius: 4, cursor: "pointer",
