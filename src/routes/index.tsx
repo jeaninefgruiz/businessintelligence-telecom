@@ -286,7 +286,10 @@ function Dashboard() {
         {data ? <ChartsRow providers={filtered} /> : <SkeletonRows />}
 
         {/* d) Mapa */}
-        {data && <BrazilMap providers={filtered} />}
+        {data && <BrazilMap providers={filtered}
+          onUfClick={(uf) => { setUfs([uf]); setTimeout(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
+          onPttClick={(_ptt, ufsNear) => { setAsnF("com"); setUfs(ufsNear); setTimeout(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
+        />}
 
         {/* e) Atalhos de prospecção rápida */}
         <QuickShortcuts data={data} potencial={potencial} setPotencial={setPotencial} listRef={listRef} />
