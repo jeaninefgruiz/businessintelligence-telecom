@@ -271,6 +271,10 @@ export function BrazilMap({ providers, onUfClick, onPttClick }: {
                         html: `<b style="color:${fill}">${p.name}</b><br/>PTT IX.br${metric === "asn" ? `<br/>${total} ASNs prováveis` : ""}` });
                     }}
                     onMouseLeave={() => { setHover(null); if (metric === "asn") setHighlightPtt(null); }}
+                    onClick={() => {
+                      const entry = stats.asnByPttSorted.find(s => s.name === p.name);
+                      if (entry && onPttClick) onPttClick(p.name, entry.ufs.map(u => u.uf));
+                    }}
                     style={{ cursor: "pointer", opacity: dim, transition: "opacity .2s" }}>
                     <circle cx={c[0]} cy={c[1]} r={7} fill={fill} stroke="#fff" strokeWidth={2} />
                   </g>
