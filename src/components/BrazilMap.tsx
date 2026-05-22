@@ -195,6 +195,7 @@ export function BrazilMap({ providers, onUfClick, onPttClick }: {
                       });
                     }}
                     onMouseLeave={() => setHover(null)}
+                    onClick={() => uf && onUfClick?.(uf)}
                     style={{ cursor: "pointer", transition: "opacity .2s, fill .15s" }}
                   />
                 );
