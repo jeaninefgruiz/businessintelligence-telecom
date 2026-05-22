@@ -54,7 +54,11 @@ const NAME_TO_UF = Object.fromEntries(Object.entries(UF_NAME).map(([k, v]) => [v
 
 type Metric = "total" | "asn" | "cdn";
 
-export function BrazilMap({ providers }: { providers: Provider[] }) {
+export function BrazilMap({ providers, onUfClick, onPttClick }: {
+  providers: Provider[];
+  onUfClick?: (uf: string) => void;
+  onPttClick?: (ptt: string, ufs: string[]) => void;
+}) {
   const [geo, setGeo] = useState<FC | null>(null);
   const [hover, setHover] = useState<{ x: number; y: number; html: string } | null>(null);
   const [metric, setMetric] = useState<Metric>("asn");
@@ -191,6 +195,7 @@ export function BrazilMap({ providers }: { providers: Provider[] }) {
                       });
                     }}
                     onMouseLeave={() => setHover(null)}
+                    onClick={() => uf && onUfClick?.(uf)}
                     style={{ cursor: "pointer", transition: "opacity .2s, fill .15s" }}
                   />
                 );
@@ -238,6 +243,7 @@ export function BrazilMap({ providers }: { providers: Provider[] }) {
                       });
                     }}
                     onMouseLeave={() => setHover(null)}
+                    onClick={() => onUfClick?.(uf)}
                     style={{ cursor: "pointer", opacity: dim, transition: "opacity .2s" }}>
                     <circle cx={c[0]} cy={c[1]} r={r} fill={fill} fillOpacity={0.92} stroke="#0E1117" strokeWidth={1.5} />
                     <text x={c[0]} y={c[1] + fontSize / 3} textAnchor="middle"
@@ -265,6 +271,10 @@ export function BrazilMap({ providers }: { providers: Provider[] }) {
                         html: `<b style="color:${fill}">${p.name}</b><br/>PTT IX.br${metric === "asn" ? `<br/>${total} ASNs prováveis` : ""}` });
                     }}
                     onMouseLeave={() => { setHover(null); if (metric === "asn") setHighlightPtt(null); }}
+                    onClick={() => {
+                      const entry = stats.asnByPttSorted.find(s => s.name === p.name);
+                      if (entry && onPttClick) onPttClick(p.name, entry.ufs.map(u => u.uf));
+                    }}
                     style={{ cursor: "pointer", opacity: dim, transition: "opacity .2s" }}>
                     <circle cx={c[0]} cy={c[1]} r={7} fill={fill} stroke="#fff" strokeWidth={2} />
                   </g>
@@ -301,6 +311,7 @@ export function BrazilMap({ providers }: { providers: Provider[] }) {
                 <div key={p.name}
                   onMouseEnter={() => setHighlightPtt(p.name)}
                   onMouseLeave={() => setHighlightPtt(null)}
+                  onClick={() => onPttClick?.(p.name, p.ufs.map(u => u.uf))}
                   style={{
                     display: "flex", alignItems: "center", gap: 8, padding: "5px 6px",
                     borderRadius: 4, cursor: "pointer",

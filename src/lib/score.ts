@@ -3,20 +3,27 @@ import { nearestPTT } from "./ptt";
 
 export type Score = "alto" | "medio" | "baixo";
 
-const PORTE_MG = /m[eé]dio|grande/i;
-const PORTE_P = /pequeno|micro|me$/i;
+// "Maior porte" inclui também DEMAIS (categoria da Receita p/ empresas fora do Simples — normalmente maiores)
+const PORTE_MG = /m[eé]dio|grande|demais/i;
+const PORTE_P = /pequeno|micro|me$|mei/i;
 
 export function providerScore(p: Provider): Score {
   const km = nearestPTT(p.uf)?.km ?? 0;
   const ass = p.assinantes ?? 0;
   const naoCdn = !p.cdn, naoHub = !p.hub;
   const porte = p.porte || "";
-
-  if (PORTE_MG.test(porte) && (naoCdn || naoHub) && (km > 500 || ass > 500)) return "alto";
-
+  const emailOk = (p.email_status || "").toLowerCase().startsWith("v");
   const naoClienteCount = (p.celeti ? 0 : 1) + (p.hub ? 0 : 1) + (p.cdn ? 0 : 1) + (p.rami ? 0 : 1);
-  const emailOk = (p.email_status || "").toLowerCase().includes("v");
+
+  // ALTO: porte maior + lacuna de produto + (longe do PTT OU base relevante de assinantes)
+  if (PORTE_MG.test(porte) && (naoCdn || naoHub) && (km > 500 || ass > 500)) return "alto";
+  // ALTO alternativo: muitos assinantes (>2k) sem CDN, mesmo sendo pequeno
+  if (ass > 2000 && naoCdn) return "alto";
+
+  // MÉDIO: pequeno/micro com lacuna em ≥2 produtos e e-mail válido (abordável)
   if (PORTE_P.test(porte) && naoClienteCount >= 2 && emailOk) return "medio";
+  // MÉDIO alternativo: qualquer porte sem CDN, com ≥200 assinantes e e-mail válido
+  if (naoCdn && ass >= 200 && emailOk) return "medio";
 
   return "baixo";
 }

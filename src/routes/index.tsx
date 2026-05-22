@@ -286,7 +286,10 @@ function Dashboard() {
         {data ? <ChartsRow providers={filtered} /> : <SkeletonRows />}
 
         {/* d) Mapa */}
-        {data && <BrazilMap providers={filtered} />}
+        {data && <BrazilMap providers={filtered}
+          onUfClick={(uf) => { setUfs([uf]); setTimeout(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
+          onPttClick={(_ptt, ufsNear) => { setAsnF("com"); setUfs(ufsNear); setTimeout(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
+        />}
 
         {/* e) Atalhos de prospecção rápida */}
         <QuickShortcuts data={data} potencial={potencial} setPotencial={setPotencial} listRef={listRef} />
@@ -316,8 +319,8 @@ function pct(n: number, total: number) {
 
 function FG({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em", fontFamily: "var(--font-head)" }}>{label}</span>
       {children}
     </div>
   );
