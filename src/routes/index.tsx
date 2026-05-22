@@ -206,14 +206,6 @@ function Dashboard() {
               <option value="rami">Não-cliente Rami</option>
             </select>
           </FG>
-          <FG label="Score">
-            <select style={selectStyle} value={scoreF} onChange={e => setScoreF(e.target.value as any)}>
-              <option value="">Todos</option>
-              <option value="alto">Alto</option>
-              <option value="medio">Médio</option>
-              <option value="baixo">Baixo</option>
-            </select>
-          </FG>
           <FG label="E-mail">
             <select style={selectStyle} value={emailF} onChange={e => setEmailF(e.target.value)}>
               <option value="">Todos</option>
