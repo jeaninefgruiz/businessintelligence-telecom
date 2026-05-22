@@ -296,7 +296,7 @@ function Dashboard() {
         </div>
 
         {/* Potencial CDN */}
-        {data && <CdnPotentialSection providers={filtered} onSelect={setSelected} />}
+        {data && <CdnPotentialSection providers={data} onSelect={setSelected} />}
       </main>
 
       <ProviderDrawer p={selected} onClose={() => setSelected(null)} />
