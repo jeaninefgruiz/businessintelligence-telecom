@@ -54,7 +54,11 @@ const NAME_TO_UF = Object.fromEntries(Object.entries(UF_NAME).map(([k, v]) => [v
 
 type Metric = "total" | "asn" | "cdn";
 
-export function BrazilMap({ providers }: { providers: Provider[] }) {
+export function BrazilMap({ providers, onUfClick, onPttClick }: {
+  providers: Provider[];
+  onUfClick?: (uf: string) => void;
+  onPttClick?: (ptt: string, ufs: string[]) => void;
+}) {
   const [geo, setGeo] = useState<FC | null>(null);
   const [hover, setHover] = useState<{ x: number; y: number; html: string } | null>(null);
   const [metric, setMetric] = useState<Metric>("asn");
