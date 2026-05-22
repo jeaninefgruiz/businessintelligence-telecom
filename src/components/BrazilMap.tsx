@@ -243,6 +243,7 @@ export function BrazilMap({ providers, onUfClick, onPttClick }: {
                       });
                     }}
                     onMouseLeave={() => setHover(null)}
+                    onClick={() => onUfClick?.(uf)}
                     style={{ cursor: "pointer", opacity: dim, transition: "opacity .2s" }}>
                     <circle cx={c[0]} cy={c[1]} r={r} fill={fill} fillOpacity={0.92} stroke="#0E1117" strokeWidth={1.5} />
                     <text x={c[0]} y={c[1] + fontSize / 3} textAnchor="middle"
