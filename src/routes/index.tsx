@@ -23,6 +23,7 @@ type PotentialFilter = "" | "celeti" | "hub" | "cdn" | "rami" | "any";
 
 function Dashboard() {
   const { mode, toggle } = useTheme();
+  const { user, signOut } = useAuth();
   const [data, setData] = useState<Provider[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
