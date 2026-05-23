@@ -27,12 +27,30 @@ export type Provider = {
   faixa: string | null;
 };
 
+import { supabase } from "@/integrations/supabase/client";
+
 let cache: Provider[] | null = null;
+
+const PAGE = 1000;
 
 export async function loadProviders(): Promise<Provider[]> {
   if (cache) return cache;
-  const res = await fetch("/data/providers.json");
-  cache = (await res.json()) as Provider[];
+  const all: Provider[] = [];
+  let from = 0;
+  // Paginação para superar o limite padrão de 1000 linhas do PostgREST
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await supabase
+      .from("base_isp_outorgados")
+      .select("*")
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    all.push(...(data as unknown as Provider[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  cache = all;
   return cache;
 }
 
