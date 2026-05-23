@@ -114,6 +114,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 import { ThemeProvider } from "@/lib/theme";
+import { AuthProvider, useAuth } from "@/lib/auth";
+import { LoginScreen } from "@/components/LoginScreen";
+
+function AuthGate() {
+  const { loading, session } = useAuth();
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text3)", fontSize: 13 }}>
+        Carregando...
+      </div>
+    );
+  }
+  if (!session) return <LoginScreen />;
+  return <Outlet />;
+}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -121,8 +136,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <Outlet />
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
 }
+
