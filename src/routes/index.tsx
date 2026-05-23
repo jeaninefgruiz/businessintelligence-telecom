@@ -11,8 +11,9 @@ import { ScoreExplainer } from "@/components/ScoreExplainer";
 import { providerScore, emailStatusKind, maturidadeAnos, toCsv, downloadCsv, Score } from "@/lib/score";
 import { nearestPTT, cdnPriority } from "@/lib/ptt";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 import {
-  Users, Building2, Globe2, Network, Mail, ShieldCheck, Target, Sun, Moon, Download, FileDown,
+  Users, Building2, Globe2, Network, Mail, ShieldCheck, Target, Sun, Moon, Download, FileDown, LogOut,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
