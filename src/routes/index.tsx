@@ -163,6 +163,14 @@ function Dashboard() {
           <button onClick={toggle} title="Alternar tema" style={iconBtn} aria-label="Alternar tema">
             {mode === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
+          {user && (
+            <span style={{ fontSize: 12, color: "var(--text2)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={user.email ?? ""}>
+              {user.email}
+            </span>
+          )}
+          <button onClick={() => signOut()} title="Sair" style={iconBtn} aria-label="Sair">
+            <LogOut size={16} />
+          </button>
         </div>
       </nav>
 
